@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Supermarket Assistant Chatbot</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="chatbot-container">
+    <h1>🛒 Supermarket Assistant Chatbot</h1>
+    <img src="https://t4.ftcdn.net/jpg/01/00/61/89/360_F_100618923_Fy0h3HKNfaPTlVBx54cgsRIKC2RaPW9U.jpg">
+    <textarea id="itemsInput" placeholder="Enter items you want, e.g., milk, bread, apple"></textarea>
+    <button onclick="sendItems()">Find Shelves</button>
+
+    <div id="responseArea"></div>
+
+    <!-- Action buttons -->
+    <button id="printBtn" style="display:none;" onclick="printList()">🖨 Print List</button>
+   
+    <button id="downloadBtn" style="display:none;" onclick="downloadList()">⬇ Download List</button>
+  </div>
+
+  <script>
+    async function sendItems() {
+      let itemsText = document.getElementById("itemsInput").value;
+      let responseArea = document.getElementById("responseArea");
+      let printBtn = document.getElementById("printBtn");
+      let downloadBtn = document.getElementById("downloadBtn");
+
+      responseArea.innerHTML = "<p>⏳ Finding shelves...</p>";
+      printBtn.style.display = "none";
+      downloadBtn.style.display = "none";
+
+      let response = await fetch("/get_shelves", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: itemsText })
+      });
+
+      let data = await response.json();
+
+      let html = "<h2>📋 Your Shelf Locations:</h2><ul>";
+      let textOutput = "📋 Your Shelf Locations:\n\n";
+      for (let [item, shelf] of Object.entries(data)) {
+        html += `<li>${item.charAt(0).toUpperCase() + item.slice(1)} → ${shelf}</li>`;
+        textOutput += `${item.charAt(0).toUpperCase() + item.slice(1)} → ${shelf}\n`;
+      }
+      html += "</ul>";
+
+      responseArea.innerHTML = html;
+
+      // store result for print/download
+      window.shelfListText = textOutput;
+
+      // show buttons
+      printBtn.style.display = "inline-block";
+      downloadBtn.style.display = "inline-block";
+    }
+
+    function printList() {
+      let content = document.getElementById("responseArea").innerHTML;
+      let printWindow = window.open("", "", "width=600,height=600");
+      printWindow.document.write("<html><head><title>Shopping List</title></head><body>");
+      printWindow.document.write(content);
+      printWindow.document.write("</body></html>");
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    function downloadList() {
+      let blob = new Blob([window.shelfListText], { type: "text/plain" });
+      let link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "shelf_list.txt";
+      link.click();
+    }
+  </script>
+</body>
+</html>
